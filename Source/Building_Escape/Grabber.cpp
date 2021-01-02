@@ -48,17 +48,39 @@ void UGrabber::SetupInputComponent()
 void UGrabber::Grab()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Grabber pressed"));
-
+	FVector PlayerViewPointLocation;
+	FRotator PlayerViewPointRotation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
+		OUT PlayerViewPointLocation,
+		OUT PlayerViewPointRotation
+	);
+	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
+	
 	// Only raycast when grabbing
 	// Try to reach any actors with a PhysicsBody collision channel set
 	// If we hit, then attach physics handle
-	GetFirstPhysicsBodyInReach();
+	FHitResult HitResult = GetFirstPhysicsBodyInReach();
+	UPrimitiveComponent* ComponentToGrab = HitResult.GetComponent();
+
+	if (HitResult.GetActor())
+	{
+		PhysicsHandle->GrabComponentAtLocation(
+			ComponentToGrab,
+			NAME_None,
+			LineTraceEnd
+		);
+	}
+
 }
 
 void UGrabber::Release()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Release pressed"));
 	// remove physics handle
+	if (PhysicsHandle->GrabbedComponent)
+	{
+		PhysicsHandle->ReleaseComponent();
+	}
 }
 
 // Called every frame
@@ -68,6 +90,22 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 
 	// If physics handle is attached
 	//    Move the object we are holding
+	if (PhysicsHandle->GrabbedComponent)
+	{
+		// Get players viepoint
+		FVector PlayerViewPointLocation;
+		FRotator PlayerViewPointRotation;
+		
+		GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
+			OUT PlayerViewPointLocation,
+			OUT PlayerViewPointRotation
+		);
+
+		// Draw a line from player - showing reach
+		FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
+	
+		PhysicsHandle->SetTargetLocation(LineTraceEnd);		
+	}
 	
 
 }
@@ -85,16 +123,6 @@ FHitResult UGrabber::GetFirstPhysicsBodyInReach() const
 
 	// Draw a line from player - showing reach
 	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-
-	// DrawDebugLine(
-	// 	GetWorld(),
-	// 	PlayerViewPointLocation,
-	// 	LineTraceEnd,
-	// 	FColor(0, 255, 0),
-	// 	false,
-	// 	0.f,
-	// 	0,
-	// 	5);
 
 	// Reach out from player - Ray-cast to a certain distance (Reach)
 
