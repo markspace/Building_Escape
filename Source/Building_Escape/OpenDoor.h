@@ -33,7 +33,7 @@ private:
 	float CurrentYaw;
 
 	UPROPERTY(EditAnywhere)
-	float DoorOpenAngle = -90.0f;
+	float DoorOpenAngle = 90.0f;
 	
 	UPROPERTY(EditAnywhere)
 	ATriggerVolume* PressurePlate = NULL;
